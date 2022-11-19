@@ -44,7 +44,6 @@ float frand() {
 int random_level() {
     static bool first = true;
     if (first) {
-        srand((unsigned)time(NULL));
         first = false;
     }
     int lvl = (int) (log(frand()) / log(1.-P));
