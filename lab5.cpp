@@ -1,278 +1,417 @@
-#include <bits/stdc++.h>
+#include <iostream>
 using namespace std;
 
-class TreeNode {
-	int *keys;
-	TreeNode **child;
-	int n;
-	bool leaf;
-	public:
-		TreeNode(bool leaf);
-		void traverse();
-		int findKey(int k);
-		void insertNonFull(int k);
-		void splitChild(int i, TreeNode *y);
-		void remove(int k);
-		void removeFromLeaf(int idx);
-		void removeFromNonLeaf(int idx);
-		int getPred(int idx);
-		int getSucc(int idx);
-		void fill(int idx);
-		void borrowFromNext(int idx);
-		void borrowFromPrev(int idx);
-		void merge(int idx);
-		friend class Tree;
+class TwoThreeNode
+{
+    int *keys;
+    int t;
+    TwoThreeNode **C;
+    int n;
+    bool leaf;
+
+public:
+    TwoThreeNode(bool _leaf);
+    void traverse();
+    TwoThreeNode *search(int k);
+    int findKey(int k);
+    void insertNonFull(int k);
+    void splitChild(int i, TwoThreeNode *y);
+    void remove(int k);
+    void removeFromLeaf(int idx);
+    void removeFromNonLeaf(int idx);
+    int getPred(int idx);
+    int getSucc(int idx);
+    void fill(int idx);
+    void borrowFromPrev(int idx);
+    void borrowFromNext(int idx);
+    void merge(int idx);
+    friend class TwoThreeTree;
 };
 
-class Tree{
-	TreeNode *root = NULL;
-	public:
-		void traverse() {
-			if(root != NULL) root->traverse();
-		}
-		void insert(int k);
-		void remove(int k);
+class TwoThreeTree
+{
+    TwoThreeNode *root;
+    int t;
+
+public:
+    TwoThreeTree()
+    {
+        root = NULL;
+        t = 2;
+    }
+
+    void traverse()
+    {
+        if (root != NULL)
+            root->traverse();
+    }
+
+    TwoThreeNode *search(int k)
+    {
+        return (root == NULL) ? NULL : root->search(k);
+    }
+
+    void insert(int k);
+    void remove(int k);
 };
 
-TreeNode::TreeNode(bool leaf1) {
-	leaf = leaf1;
-	keys = new int[3];
-	child = new TreeNode *[4];
-	n = 0;
+TwoThreeNode::TwoThreeNode(bool leaf1)
+{
+    t = 2;
+    leaf = leaf1;
+    keys = new int[2 * t - 1];
+    C = new TwoThreeNode *[2 * t];
+    n = 0;
 }
 
-int TreeNode::findKey(int k) {
-	int idx = 0;
-	while(idx < n && keys[idx] < k) ++idx;
-	return idx;
+int TwoThreeNode::findKey(int k)
+{
+    int idx = 0;
+    while (idx < n && keys[idx] < k)
+        ++idx;
+    return idx;
 }
 
-void Tree::insert(int k) {
-	if(root == NULL) {
-		root = new TreeNode(true);
-		root -> keys[0] = k;
-		root -> n = 1;
-	} else {
-		if(root -> n == 3) {
-			TreeNode *s = new TreeNode(false);
-			s -> child[0] = root;
-			s -> splitChild(0, root);
-			int i = 0;
-			if(s -> keys[0] < k) i++;
-			s -> child[i] -> insertNonFull(k);
-			root = s;
-		} else
-			root->insertNonFull(k);
-	}
+void TwoThreeNode::remove(int k)
+{
+    int idx = findKey(k);
+    if (idx < n && keys[idx] == k)
+    {
+        if (leaf)
+            removeFromLeaf(idx);
+        else
+            removeFromNonLeaf(idx);
+    }
+    else
+    {
+        if (leaf)
+        {
+            cout << "The key " << k << " is does not exist in the tree\n";
+            return;
+        }
+        bool flag = ((idx == n) ? true : false);
+        if (C[idx]->n < t)
+            fill(idx);
+        if (flag && idx > n)
+            C[idx - 1]->remove(k);
+        else
+            C[idx]->remove(k);
+    }
+    return;
 }
 
-void TreeNode::insertNonFull(int k) {
-	int i = n - 1;
-	if(leaf == true) {
-		while(i >= 0 && keys[i] > k) {
-			keys[i + 1] = keys[i];
-			i--;
-		}
-		keys[i + 1] = k;
-		n = n + 1;
-	} else {
-		while(i >= 0 && keys[i] > k) i--;
-		if(child[i + 1] -> n == 3) {
-			splitChild(i + 1, child[i + 1]);
-			if(keys[i + 1] < k) i++;
-		}
-		child[i + 1] -> insertNonFull(k);
-	}
+void TwoThreeNode::removeFromLeaf(int idx)
+{
+
+    for (int i = idx + 1; i < n; ++i)
+        keys[i - 1] = keys[i];
+    n--;
+    return;
 }
 
-void TreeNode::splitChild(int i, TreeNode *y) {
-	TreeNode *z = new TreeNode(y -> leaf);
-	z -> n = 1;
-	z -> keys[0] = y -> keys[2];
-	if(y -> leaf == false) for(int j = 0; j < 2; j++) z -> child[j] = y -> child[j + 2];
+void TwoThreeNode::removeFromNonLeaf(int idx)
+{
 
-	y -> n = 1;
-	for(int j = n; j >= i + 1; j--) child[j + 1] = child[j];
-	child[i + 1] = z;
-	for (int j = n - 1; j >= i; j--) keys[j+1] = keys[j];
-
-    	keys[i] = y -> keys[1];
-
-    	n = n + 1;
+    int k = keys[idx];
+    if (C[idx]->n >= t)
+    {
+        int pred = getPred(idx);
+        keys[idx] = pred;
+        C[idx]->remove(pred);
+    }
+    else if (C[idx + 1]->n >= t)
+    {
+        int succ = getSucc(idx);
+        keys[idx] = succ;
+        C[idx + 1]->remove(succ);
+    }
+    else
+    {
+        merge(idx);
+        C[idx]->remove(k);
+    }
+    return;
 }
 
-void TreeNode::traverse() {
-	cout << "\n";
-	int i;
-	for(i = 0; i < n; i++) {
-		if(leaf == false) child[i] -> traverse();
-		cout << " " << keys[i];
-	}
-	if(leaf == false)
-		child[i] -> traverse();
+int TwoThreeNode::getPred(int idx)
+{
 
-	cout << "\n";
+    TwoThreeNode *cur = C[idx];
+    while (!cur->leaf)
+        cur = cur->C[cur->n];
+    return cur->keys[cur->n - 1];
 }
 
-void TreeNode::remove(int k) {
-	int idx = findKey(k);
-	if(idx < n && keys[idx] == k) {
-		if(leaf) removeFromLeaf(idx);
-		else removeFromNonLeaf(idx);
-	} else {
-		if(leaf) {
-			cout << "The key doesn't exist \n";
-			return;
-		}
-		bool flag = ((idx == n)?true : false);
-		if(child[idx] -> n < 2) fill(idx);
-		if(flag && idx > n) child[idx - 1] -> remove(k);
-		else child[idx] -> remove(k);
-	}
-	return;
+int TwoThreeNode::getSucc(int idx)
+{
+
+    TwoThreeNode *cur = C[idx + 1];
+    while (!cur->leaf)
+        cur = cur->C[0];
+    return cur->keys[0];
 }
 
-void TreeNode::removeFromLeaf(int idx) {
-	for(int i = idx + 1; i < n; ++i) keys[i - 1] = keys[i];
-	n--;
-	return;
+void TwoThreeNode::fill(int idx)
+{
+
+    if (idx != 0 && C[idx - 1]->n >= t)
+        borrowFromPrev(idx);
+    else if (idx != n && C[idx + 1]->n >= t)
+        borrowFromNext(idx);
+    else
+    {
+        if (idx != n)
+            merge(idx);
+        else
+            merge(idx - 1);
+    }
+    return;
 }
 
-void TreeNode::removeFromNonLeaf(int idx) {
-	int k = keys[idx];
-	if(child[idx] -> n >= 2) {
-		int pred = getPred(idx);
-		keys[idx] = pred;
-		child[idx] -> remove(pred);
-	}
-	else if(child[idx + 1] -> n >= 2) {
-		int succ = getSucc(idx);
-		keys[idx] = succ;
-		child[idx +1 ] -> remove(succ);
-	} else{
-		merge(idx);
-		child[idx] -> remove(k);
-	}
-	return;
+void TwoThreeNode::borrowFromPrev(int idx)
+{
+
+    TwoThreeNode *child = C[idx];
+    TwoThreeNode *sibling = C[idx - 1];
+    for (int i = child->n - 1; i >= 0; --i)
+        child->keys[i + 1] = child->keys[i];
+    if (!child->leaf)
+    {
+        for (int i = child->n; i >= 0; --i)
+            child->C[i + 1] = child->C[i];
+    }
+    child->keys[0] = keys[idx - 1];
+    if (!child->leaf)
+        child->C[0] = sibling->C[sibling->n];
+    keys[idx - 1] = sibling->keys[sibling->n - 1];
+    child->n += 1;
+    sibling->n -= 1;
+    return;
 }
 
-int TreeNode::getPred(int idx) {
-	TreeNode *curr = child[idx];
-	while(!curr -> leaf) curr = curr -> child[curr -> n];
-	return curr -> keys[curr -> n - 1];
+void TwoThreeNode::borrowFromNext(int idx)
+{
+
+    TwoThreeNode *child = C[idx];
+    TwoThreeNode *sibling = C[idx + 1];
+    child->keys[(child->n)] = keys[idx];
+    if (!(child->leaf))
+        child->C[(child->n) + 1] = sibling->C[0];
+    keys[idx] = sibling->keys[0];
+
+    for (int i = 1; i < sibling->n; ++i)
+        sibling->keys[i - 1] = sibling->keys[i];
+    if (!sibling->leaf)
+    {
+        for (int i = 1; i <= sibling->n; ++i)
+            sibling->C[i - 1] = sibling->C[i];
+    }
+    child->n += 1;
+    sibling->n -= 1;
+    return;
 }
 
-int TreeNode::getSucc(int idx) {
-	TreeNode *curr = child[idx + 1];
-    	while (!curr -> leaf)
-    		curr = curr -> child[0];
-    	return curr -> keys[0];
+void TwoThreeNode::merge(int idx)
+{
+    TwoThreeNode *child = C[idx];
+    TwoThreeNode *sibling = C[idx + 1];
+    child->keys[t - 1] = keys[idx];
+    for (int i = 0; i < sibling->n; ++i)
+        child->keys[i + t] = sibling->keys[i];
+    if (!child->leaf)
+    {
+        for (int i = 0; i <= sibling->n; ++i)
+            child->C[i + t] = sibling->C[i];
+    }
+    for (int i = idx + 1; i < n; ++i)
+        keys[i - 1] = keys[i];
+    for (int i = idx + 2; i <= n; ++i)
+        C[i - 1] = C[i];
+    child->n += sibling->n + 1;
+    n--;
+    delete (sibling);
+    return;
 }
 
-void TreeNode::fill(int idx) {
-	if(idx != 0 && child[idx - 1] -> n >= 2) borrowFromPrev(idx);
-
-    	else if (idx != n && child[idx + 1] -> n >= 2) borrowFromNext(idx);
-    	else {
-        	if (idx != n) merge(idx);
-        	else merge(idx - 1);
-    	}
-    	return;
+void TwoThreeTree::insert(int k)
+{
+    if (root == NULL)
+    {
+        root = new TwoThreeNode(true);
+        root->keys[0] = k;
+        root->n = 1;
+    }
+    else
+    {
+        if (root->n == 2 * t - 1)
+        {
+            TwoThreeNode *s = new TwoThreeNode(false);
+            s->C[0] = root;
+            s->splitChild(0, root);
+            int i = 0;
+            if (s->keys[0] < k)
+                i++;
+            s->C[i]->insertNonFull(k);
+            root = s;
+        }
+        else
+            root->insertNonFull(k);
+    }
 }
 
-void TreeNode::borrowFromPrev(int idx) {
+void TwoThreeNode::insertNonFull(int k)
+{
 
-    	TreeNode *c = child[idx];
-    	TreeNode *sibling = child[idx - 1];
-
-    	for (int i = c -> n - 1; i >= 0; --i) c -> keys[i + 1] = c -> keys[i];
-    	if (!c -> leaf) for(int i = c -> n; i >= 0; --i) c -> child[i + 1] = c -> child[i];
-    	c -> keys[0] = keys[idx - 1];
-
-    	if(!c -> leaf) c -> child[0] = sibling -> child[sibling -> n];
-
-    	keys[idx - 1] = sibling -> keys[sibling -> n - 1];
-
-    	c -> n += 1;
-    	sibling -> n -= 1;
-
- 	return;
+    int i = n - 1;
+    if (leaf == true)
+    {
+        while (i >= 0 && keys[i] > k)
+        {
+            keys[i + 1] = keys[i];
+            i--;
+        }
+        keys[i + 1] = k;
+        n = n + 1;
+    }
+    else
+    {
+        while (i >= 0 && keys[i] > k)
+            i--;
+        if (C[i + 1]->n == 2 * t - 1)
+        {
+            splitChild(i + 1, C[i + 1]);
+            if (keys[i + 1] < k)
+                i++;
+        }
+        C[i + 1]->insertNonFull(k);
+    }
 }
 
-void TreeNode::borrowFromNext(int idx) {
+void TwoThreeNode::splitChild(int i, TwoThreeNode *y)
+{
 
-    	TreeNode *c = child[idx];
-    	TreeNode *sibling=child[idx + 1];
+    TwoThreeNode *z = new TwoThreeNode(y->leaf);
+    z->n = t - 1;
+    for (int j = 0; j < t - 1; j++)
+        z->keys[j] = y->keys[j + t];
+    if (y->leaf == false)
+    {
+        for (int j = 0; j < t; j++)
+            z->C[j] = y->C[j + t];
+    }
+    y->n = t - 1;
+    for (int j = n; j >= i + 1; j--)
+        C[j + 1] = C[j];
 
-    	c -> keys[(c -> n)] = keys[idx];
+    C[i + 1] = z;
+    for (int j = n - 1; j >= i; j--)
+        keys[j + 1] = keys[j];
 
-    	if (!(c -> leaf)) c -> child[(c -> n) + 1] = sibling -> child[0];
-
-    	keys[idx] = sibling -> keys[0];
-
-    	for (int i = 1; i < sibling -> n; ++i) sibling -> keys[i - 1] = sibling -> keys[i];
-
-    	if (!sibling -> leaf) for(int i = 1; i <= sibling -> n; ++i) sibling -> child[i - 1] = sibling -> child[i];
-
-    	c -> n += 1;
-    	sibling -> n -= 1;
-
-    	return;
+    keys[i] = y->keys[t - 1];
+    n = n + 1;
 }
 
-void TreeNode::merge(int idx) {
-    	TreeNode *c = child[idx];
-    	TreeNode *sibling = child[idx + 1];
+void TwoThreeNode::traverse()
+{
 
-    	c -> keys[1] = keys[idx];
-
-    	for (int i = 0; i < sibling -> n; ++i) c -> keys[i + 2] = sibling -> keys[i];
-
-    	if (!c -> leaf) for(int i = 0; i <= sibling -> n; ++i) c -> child[i + 2] = sibling -> child[i];
-
-    	for (int i = idx + 1; i < n; ++i) keys[i - 1] = keys[i];
-
-    	for (int i = idx + 2; i <= n; ++i) child[i - 1] = child[i];
-
-    	c -> n += sibling -> n + 1;
-    	n--;
-
-    	delete(sibling);
-    	return;
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        if (leaf == false)
+            C[i]->traverse();
+        cout << " " << keys[i];
+    }
+    if (leaf == false)
+        C[i]->traverse();
 }
 
-void Tree::remove(int k) {
-    	if (!root) {
-        	cout << "The tree is empty \n";
-        	return;
-    	}
-    	root->remove(k);
-    	if (root -> n == 0) {
-        	TreeNode *tmp = root;
-        	if (root -> leaf) root = NULL;
-        	else
-            root = root->child[0];
-        	delete tmp;
-    	}
-    	return;
+TwoThreeNode *TwoThreeNode::search(int k)
+{
+    int i = 0;
+    while (i < n && k > keys[i])
+        i++;
+    if (keys[i] == k)
+        return this;
+
+    if (leaf == true)
+        return NULL;
+    return C[i]->search(k);
 }
 
-int main() {
-  Tree t;
-	int n,k;
-	cout << "Enter the no. of elements \n";
-	cin >> n;
-	cout << "Enter the keys \n";
-	for(int i = 0; i < n; i++) {
-		cin >> k;
-		t.insert(k);
-	}
-	cout << "Traversal of tree constructed is \n";
-  t.traverse();
-	cout << "Enter the key to be deleted \n";
-	cin >> k;
-	t.remove(k);
-	cout << "Traversal after deletion is \n";
-	t.traverse();
-	return 0;
+void TwoThreeTree::remove(int k)
+{
+    if (!root)
+    {
+        cout << "The tree is empty\n";
+        return;
+    }
+
+    root->remove(k);
+    if (root->n == 0)
+    {
+        TwoThreeNode *tmp = root;
+        if (root->leaf)
+            root = NULL;
+        else
+            root = root->C[0];
+
+        delete tmp;
+    }
+    return;
+}
+
+int main()
+{
+    TwoThreeTree t;
+    int ch;
+    do
+    {
+    	cout<<"ENTER CHOICE: 1. INSERT  2. DELETE  3. TRAVERSE  4. EXIT \n";
+    	cin>>ch;
+    	switch(ch)
+		{
+			case 1: cout << "\nEnter number of nodes to insert: ";
+    				int n;
+    				cin >> n;
+    				for (int i = 0; i < n; i++)
+    				{
+        				cout << "Enter node " << i + 1 << " : ";
+        				int node;
+        				cin >> node;
+        				t.insert(node);
+        				cout << "Tree is \n";
+       					t.traverse();
+        				cout << endl;
+    				}
+    				break;
+    				
+    		case 2: cout << "Enter number of nodes to remove: ";
+    				cin >> n;
+    				for (int i = 0; i < n; i++)
+    				{
+        				cout << "Enter node to remove: ";
+        				int node;
+        				cin >> node;
+        				t.remove(node);
+        				cout << "Tree after removing " << node << " is \n";
+        				t.traverse();
+       					cout << endl;
+    				}
+    				break;
+    				
+    		case 3: cout<<"Tree is ";
+					t.traverse();
+        			cout << endl;
+        			break;
+        			
+        	case 4: exit(0);
+        			break;
+        			
+        	default: cout<<"Invalid choice!! \n";
+
+		}	
+	} while (ch!=4);
+
+     
+    return 0;
 }
