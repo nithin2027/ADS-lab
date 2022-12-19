@@ -124,11 +124,10 @@ int main() {
   cout << "Enter B Tree Order \n";
   cin >> n;
   BTree t(n);
-
   int k;
-  cout << "Enter Elements \n";
+  cout << "Enter no. of Elements \n";
   cin >> k;
-
+  cout << "Enter Elements \n";
   while (k--) {
     int m;
     cin >> m;
