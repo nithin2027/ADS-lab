@@ -1,139 +1,156 @@
-#include <iostream>
+#include<iostream>
 using namespace std;
-
-class Node {
-  int *keys;
-  int t;
-  Node **C;
-  int n;
-  bool leaf;
-
-  public:
-  Node(int tt, bool lleaf);
-
-  void insertNonFull(int k);
-  void splitChild(int i, Node *y);
-  void traverse();
-
-  friend class BTree;
+struct BTree{
+   int *d;
+   BTree **child_ptr;
+   bool l;
+   int n;
 };
+struct BTree *r = NULL, *np = NULL, *x = NULL;
 
-class BTree {
-  Node *root;
-  int t;
-
-  public:
-  BTree(int tt) {
-    root = NULL;
-    t = tt;
-  }
-
-  void traverse() {
-    if (root) root->traverse();
-  }
-
-  void insert(int k);
-};
-
-Node::Node(int tt, bool lleaf) {
-  t = tt;
-  leaf = lleaf;
-
-  keys = new int[2 * t - 1];
-  C = new Node *[2 * t];
-
-  n = 0;
+BTree* init(){
+   int i;
+   np = new BTree;
+   np->d = new int[6];//order 6
+   np->child_ptr = new BTree *[7];
+   np->l = true;
+   np->n = 0;
+   for (i = 0; i < 7; i++) {
+      np->child_ptr[i] = NULL;
+   }
+   return np;
 }
 
-void Node::traverse() {
-  int i;
-  for (i = 0; i < n; i++) {
-    if (leaf == false) C[i] -> traverse();
-    cout << " " << keys[i];
-  }
-
-  if (leaf == false) C[i]->traverse();
+void traverse(BTree *p){
+   cout<<endl;
+   int i;
+   for (i = 0; i < p->n; i++) {
+      if (p->l == false) {
+         traverse(p->child_ptr[i]);
+      }
+      cout << " " << p->d[i];
+   }
+   if (p->l == false) {
+      traverse(p->child_ptr[i]);
+   }
+   cout<<endl;
 }
 
-void BTree::insert(int k) {
-  if (root == NULL) {
-    root = new Node(t, true);
-    root -> keys[0] = k;
-    root -> n = 1;
-  } else {
-    if (root -> n == 2 * t - 1) {
-      Node *s = new Node(t, false);
-
-      s -> C[0] = root;
-
-      s -> splitChild(0, root);
-
-      int i = 0;
-      if (s->keys[0] < k) i++;
-      s -> C[i] -> insertNonFull(k);
-
-      root = s;
-    } else root -> insertNonFull(k);
-  }
+void sort(int *p, int n){
+   int i, j, t;
+   for (i = 0; i < n; i++) {
+      for (j = i; j <= n; j++) {
+         if (p[i] >p[j]) {
+            t = p[i];
+            p[i] = p[j];
+            p[j] = t;
+         }
+      }
+   }
 }
 
-void Node::insertNonFull(int k) {
-  int i = n - 1;
-
-  if (leaf == true) {
-    while (i >= 0 && keys[i] > k) {
-      keys[i + 1] = keys[i];
-      i--;
-    }
-
-    keys[i + 1] = k;
-    n = n + 1;
-  } else {
-    while (i >= 0 && keys[i] > k) i--;
-
-    if (C[i + 1] -> n == 2 * t - 1) {
-      splitChild(i + 1, C[i + 1]);
-
-      if (keys[i + 1] < k) i++;
-    }
-    C[i + 1] -> insertNonFull(k);
-  }
+int split_child(BTree *x, int i) {
+   int j, mid;
+   BTree *np1, *np3, *y;
+   np3 = init();//create new node
+   np3->l = true;
+   if (i == -1) {
+      mid = x->d[2];//find mid
+      x->d[2] = 0;
+      x->n--;
+      np1 = init();
+      np1->l= false;
+      x->l= true;
+      for (j = 3; j < 6; j++) {
+         np3->d[j - 3] = x->d[j];
+         np3->child_ptr[j - 3] = x->child_ptr[j];
+         np3->n++;
+         x->d[j] = 0;
+         x->n--;
+      }
+      for (j = 0; j < 6; j++) {
+         x->child_ptr[j] = NULL;
+      }
+      np1->d[0] = mid;
+      np1->child_ptr[np1->n] = x;
+      np1->child_ptr[np1->n + 1] = np3;
+      np1->n++;
+      r = np1;
+   } else {
+      y = x->child_ptr[i];
+      mid = y->d[2];
+      y->d[2] = 0;
+      y->n--;
+      for (j = 3; j <6 ; j++) {
+         np3->d[j - 3] = y->d[j];
+         np3->n++;
+         y->d[j] = 0;
+         y->n--;
+      }
+      x->child_ptr[i + 1] = y;
+      x->child_ptr[i + 1] = np3;
+   }
+   return mid;
 }
 
-void Node::splitChild(int i, Node *y) {
-  Node *z = new Node(y -> t, y -> leaf);
-  z -> n = t - 1;
-
-  for (int j = 0; j < t - 1; j++) z -> keys[j] = y -> keys[j + t];
-
-  if (y -> leaf == false) for (int j = 0; j < t; j++) z -> C[j] = y -> C[j + t];
-
-  y -> n = t - 1;
-  for (int j = n; j >= i + 1; j--) C[j + 1] = C[j];
-
-  C[i + 1] = z;
-
-  for (int j = n - 1; j >= i; j--) keys[j + 1] = keys[j];
-
-  keys[i] = y -> keys[t - 1];
-  n = n + 1;
+void insert(int a) {
+   int i, t;
+   x = r;
+   if (x == NULL) {
+      r = init();
+      x = r;
+   } else {
+      if (x->l== true && x->n == 6) {
+         t = split_child(x, -1);
+         x = r;
+         for (i = 0; i < (x->n); i++) {
+            if ((a >x->d[i]) && (a < x->d[i + 1])) {
+               i++;
+               break;
+            } else if (a < x->d[0]) {
+               break;
+            } else {
+               continue;
+            }
+         }
+         x = x->child_ptr[i];
+      } else {
+         while (x->l == false) {
+            for (i = 0; i < (x->n); i++) {
+               if ((a >x->d[i]) && (a < x->d[i + 1])) {
+                  i++;
+                  break;
+               } else if (a < x->d[0]) {
+                  break;
+               } else {
+                  continue;
+               }
+            }
+            if ((x->child_ptr[i])->n == 6) {
+               t = split_child(x, i);
+               x->d[x->n] = t;
+               x->n++;
+               continue;
+            } else {
+               x = x->child_ptr[i];
+            }
+         }
+      }
+   }
+   x->d[x->n] = a;
+   sort(x->d, x->n);
+   x->n++;
 }
 
 int main() {
-  int n;
-  cout << "Enter B Tree Order \n";
-  cin >> n;
-  BTree t(n);
-  int k;
-  cout << "Enter no. of Elements \n";
-  cin >> k;
-  cout << "Enter Elements \n";
-  while (k--) {
-    int m;
-    cin >> m;
-    t.insert(m);
-  }
-
-  cout << "The B-tree is: ";
-  t.traverse();
+   int i, n, t;
+   cout<<"enter the no of elements to be inserted\n";
+   cin>>n;
+   for(i = 0; i < n; i++) {
+      cout<<"enter the element\n";
+      cin>>t;
+      insert(t);
+   }
+   cout<<"traversal of constructed B tree\n";
+   traverse(r);
 }
