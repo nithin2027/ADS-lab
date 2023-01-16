@@ -1,4 +1,6 @@
-#include<bits/stdc++.h>
+#include<iostream>
+#include<conio.h>
+#include<stdlib.h>
 using namespace std;
 # define max 10
 typedef struct list
@@ -54,16 +56,16 @@ void Dictionary::search(int key)
     {
         if(temp[index]->data==key)
         {
-            cout<<"\nSearch key is found!!";
+            cout<<"\nSearch key is found at index: \n"<<temp[index];
             flag=1;
             break;
         }
         else temp[index]=temp[index]->next;
     }
     if (flag==0)
-        cout<<"\nsearch key not found.......";
+        cout<<"\nsearch key not found.......\n";
 }
-void Dictionary::delete_ele(int key)
+/*void Dictionary::delete_ele(int key)
 {
     index=int(key%max);
     temp[index]=root[index];
@@ -78,14 +80,15 @@ void Dictionary::delete_ele(int key)
     temp[index]=NULL;
     free(temp[index]);
 }
-int main()
+*/
+main()
 {
     int val,ch,n,num;
     char c;
     Dictionary d;
-    do
+    while(1)
     {
-        cout<<"\nMENU:\n1.Create";
+        cout<<"MENU:\n1.Create";
         cout<<"\n2.Search for a value\n3.Delete an value";
         cout<<"\nEnter your choice:";
         cin>>ch;
@@ -105,17 +108,15 @@ int main()
             cout<<"\nEnter the element to be searched:";
             cin>>n;
             d.search(n);
-        case 3:
+            break;
+        /*case 3:
             cout<<"\nEnter the element to be deleted:";
             cin>>n;
             d.delete_ele(n);
-            break;
+            break;*/
         default:
             cout<<"\nInvalid Choice.";
         }
-        cout<<"\nEnter y to Continue:";
-        cin>>c;
     }
-    while(c=='y');
-    return 0;
+
 }
