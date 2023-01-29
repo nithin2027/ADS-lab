@@ -1,337 +1,305 @@
-#include<iostream>
-
-#define SPACE 10
-
+#include<bits/stdc++.h>
+#include<queue>
+#include<unordered_map>
 using namespace std;
 
-class TreeNode {
-  public:
-    int value;
-  TreeNode * left;
-  TreeNode * right;
 
-  TreeNode() {
-    value = 0;
-    left = NULL;
-    right = NULL;
-  }
-  TreeNode(int v) {
-    value = v;
-    left = NULL;
-    right = NULL;
-  }
+class Node
+{
+    public:
+    int key;
+    Node *left;
+    Node *right;
+    int height;
 };
 
-class AVLTree {
-  public:
-    TreeNode * root;
-  AVLTree() {
-    root = NULL;
-  }
-  bool isTreeEmpty() {
-    if (root == NULL) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-  // Get Height
-  int height(TreeNode * r) {
-    if (r == NULL)
-      return -1;
-    else {
-      /* compute the height of each subtree */
-      int lheight = height(r -> left);
-      int rheight = height(r -> right);
 
-      /* use the larger one */
-      if (lheight > rheight)
-        return (lheight + 1);
-      else return (rheight + 1);
-    }
-  }
+int max(int a, int b);
 
-  // Get Balance factor of node N
-  int getBalanceFactor(TreeNode * n) {
-    if (n == NULL)
-      return -1;
-    return height(n -> left) - height(n -> right);
-  }
 
-  TreeNode * rightRotate(TreeNode * y) {
-    TreeNode * x = y -> left;
-    TreeNode * T2 = x -> right;
+int height(Node *N)
+{
+    if (N == NULL)
+        return 0;
+    return N->height;
+}
 
-    // Perform rotation
-    x -> right = y;
-    y -> left = T2;
+
+int max(int a, int b)
+{
+    return (a > b)? a : b;
+}
+
+
+Node* newNode(int key)
+{
+    Node* node = new Node();
+    node->key = key;
+    node->left = NULL;
+    node->right = NULL;
+    node->height = 1;
+    return(node);
+}
+
+
+Node *rightRotate(Node *y)
+{
+    Node *x = y->left;
+    Node *T2 = x->right;
+
+
+    x->right = y;
+    y->left = T2;
+
+
+    y->height = max(height(y->left),
+                    height(y->right)) + 1;
+    x->height = max(height(x->left),
+                    height(x->right)) + 1;
+
 
     return x;
-  }
+}
 
-  TreeNode * leftRotate(TreeNode * x) {
-    TreeNode * y = x -> right;
-    TreeNode * T2 = y -> left;
 
-    // Perform rotation
-    y -> left = x;
-    x -> right = T2;
+Node *leftRotate(Node *x)
+{
+    Node *y = x->right;
+    Node *T2 = y->left;
+
+
+    y->left = x;
+    x->right = T2;
+
+
+    x->height = max(height(x->left),
+                    height(x->right)) + 1;
+    y->height = max(height(y->left),
+                    height(y->right)) + 1;
+
 
     return y;
-  }
+}
 
-  TreeNode * insert(TreeNode * r, TreeNode * new_node) {
-    if (r == NULL) {
-      r = new_node;
-      cout << "Value inserted successfully" << endl;
-      return r;
-    }
 
-    if (new_node -> value < r -> value) {
-      r -> left = insert(r -> left, new_node);
-    } else if (new_node -> value > r -> value) {
-      r -> right = insert(r -> right, new_node);
-    } else {
-      cout << "No duplicate values allowed!" << endl;
-      return r;
-    }
+int getBalance(Node *N)
+{
+    if (N == NULL)
+        return 0;
+    return height(N->left) -
+           height(N->right);
+}
 
-    int bf = getBalanceFactor(r);
-    if (bf > 1 && new_node -> value < r -> left -> value)
-      return rightRotate(r);
+Node* insert(Node* node, int key)
+{
 
-    if (bf < -1 && new_node -> value > r -> right -> value)
-      return leftRotate(r);
+    if (node == NULL)
+        return(newNode(key));
 
-    if (bf > 1 && new_node -> value > r -> left -> value) {
-      r -> left = leftRotate(r -> left);
-      return rightRotate(r);
-    }
+    if (key < node->key)
+        node->left = insert(node->left, key);
+    else if (key > node->key)
+        node->right = insert(node->right, key);
+    else
+        return node;
 
-    if (bf < -1 && new_node -> value < r -> right -> value) {
-      r -> right = rightRotate(r -> right);
-      return leftRotate(r);
-    }
 
-    /* return the (unchanged) node pointer */
-    return r;
+    node->height = 1 + max(height(node->left),
+                           height(node->right));
 
-  }
 
-  TreeNode * minValueNode(TreeNode * node) {
-    TreeNode * current = node;
-    /* loop down to find the leftmost leaf */
-    while (current -> left != NULL) {
-      current = current -> left;
-    }
-    return current;
-  }
+    int balance = getBalance(node);
 
-  TreeNode * deleteNode(TreeNode * r, int v) {
-    // base case
-    if (r == NULL) {
-      return NULL;
-    }
-    // If the key to be deleted is smaller than the root's key,
-    // then it lies in left subtree
-    else if (v < r -> value) {
-      r -> left = deleteNode(r -> left, v);
-    }
-    // If the key to be deleted is greater than the root's key,
-    // then it lies in right subtree
-    else if (v > r -> value) {
-      r -> right = deleteNode(r -> right, v);
-    }
-    // if key is same as root's key, then This is the node to be deleted
-    else {
-      // node with only one child or no child
-      if (r -> left == NULL) {
-        TreeNode * temp = r -> right;
-        delete r;
-        return temp;
-      } else if (r -> right == NULL) {
-        TreeNode * temp = r -> left;
-        delete r;
-        return temp;
-      } else {
-        // node with two children: Get the inorder successor (smallest
-        // in the right subtree)
-        TreeNode * temp = minValueNode(r -> right);
-        // Copy the inorder successor's content to this node
-        r -> value = temp -> value;
-        // Delete the inorder successor
-        r -> right = deleteNode(r -> right, temp -> value);
-        //deleteNode(r->right, temp->value);
-      }
-    }
 
-    int bf = getBalanceFactor(r);
-    // Left Left Imbalance/Case or Right rotation
-    if (bf == 2 && getBalanceFactor(r -> left) >= 0)
-      return rightRotate(r);
-    // Left Right Imbalance/Case or LR rotation
-    else if (bf == 2 && getBalanceFactor(r -> left) == -1) {
-      r -> left = leftRotate(r -> left);
-      return rightRotate(r);
-    }
-    // Right Right Imbalance/Case or Left rotation
-    else if (bf == -2 && getBalanceFactor(r -> right) <= -0)
-      return leftRotate(r);
-    // Right Left Imbalance/Case or RL rotation
-    else if (bf == -2 && getBalanceFactor(r -> right) == 1) {
-      r -> right = rightRotate(r -> right);
-      return leftRotate(r);
-    }
 
-    return r;
-  }
 
-  void print2D(TreeNode * r, int space) {
-    if (r == NULL) // Base case  1
-      return;
-    space += SPACE; // Increase distance between levels   2
-    print2D(r -> right, space); // Process right child first 3
-    cout << endl;
-    for (int i = SPACE; i < space; i++) // 5
-      cout << " "; // 5.1
-    cout << r -> value << "\n"; // 6
-    print2D(r -> left, space); // Process left child  7
-  }
-  void printPreorder(TreeNode * r) //(current node, Left, Right)
-  {
-    if (r == NULL)
-      return;
-    /* first print data of node */
-    cout << r -> value << " ";
-    /* then recur on left sutree */
-    printPreorder(r -> left);
-    /* now recur on right subtree */
-    printPreorder(r -> right);
-  }
+    if (balance > 1 && key < node->left->key)
+        return rightRotate(node);
 
-  void printInorder(TreeNode * r) //  (Left, current node, Right)
-  {
-    if (r == NULL)
-      return;
-    /* first recur on left child */
-    printInorder(r -> left);
-    /* then print the data of node */
-    cout << r -> value << " ";
-    /* now recur on right child */
-    printInorder(r -> right);
-  }
-  void printPostorder(TreeNode * r) //(Left, Right, Root)
-  {
-    if (r == NULL)
-      return;
-    // first recur on left subtree
-    printPostorder(r -> left);
-    // then recur on right subtree
-    printPostorder(r -> right);
-    // now deal with the node
-    cout << r -> value << " ";
-  }
 
-  /* Print nodes at a given level */
-  void printGivenLevel(TreeNode * r, int level) {
-    if (r == NULL)
-      return;
-    else if (level == 0)
-      cout << r -> value << " ";
-    else // level > 0
+    if (balance < -1 && key > node->right->key)
+        return leftRotate(node);
+
+
+    if (balance > 1 && key > node->left->key)
     {
-      printGivenLevel(r -> left, level - 1);
-      printGivenLevel(r -> right, level - 1);
+        node->left = leftRotate(node->left);
+        return rightRotate(node);
     }
-  }
-  void printLevelOrderBFS(TreeNode * r) {
-    int h = height(r);
-    for (int i = 0; i <= h; i++)
-      printGivenLevel(r, i);
-  }
 
-  TreeNode * iterativeSearch(int v) {
-    if (root == NULL) {
-      return root;
-    } else {
-      TreeNode * temp = root;
-      while (temp != NULL) {
-        if (v == temp -> value) {
-          return temp;
-        } else if (v < temp -> value) {
-          temp = temp -> left;
-        } else {
-          temp = temp -> right;
-        }
-      }
-      return NULL;
+
+    if (balance < -1 && key < node->right->key)
+    {
+        node->right = rightRotate(node->right);
+        return leftRotate(node);
     }
-  }
 
-  TreeNode * recursiveSearch(TreeNode * r, int val) {
-    if (r == NULL || r -> value == val)
-      return r;
 
-    else if (val < r -> value)
-      return recursiveSearch(r -> left, val);
+    return node;
+}
+
+
+Node * minValueNode(Node* node)
+{
+    Node* current = node;
+
+
+    while (current->left != NULL)
+        current = current->left;
+
+    return current;
+}
+
+
+Node* deleteNode(Node* root, int key)
+{
+
+
+    if (root == NULL)
+        return root;
+
+
+    if ( key < root->key )
+        root->left = deleteNode(root->left, key);
+
+
+    else if( key > root->key )
+        root->right = deleteNode(root->right, key);
+
 
     else
-      return recursiveSearch(r -> right, val);
+    {
+
+        if( (root->left == NULL) ||
+            (root->right == NULL) )
+        {
+            Node *temp = root->left ?
+                         root->left :
+                         root->right;
+
+
+            if (temp == NULL)
+            {
+                temp = root;
+                root = NULL;
+            }
+            else
+            *root = *temp;
+
+            free(temp);
+        }
+        else
+        {
+
+            Node* temp = minValueNode(root->right);
+
+
+            root->key = temp->key;
+
+
+            root->right = deleteNode(root->right,
+                                     temp->key);
+        }
+    }
+
+
+    if (root == NULL)
+    return root;
+
+
+    root->height = 1 + max(height(root->left),
+                           height(root->right));
+
+
+    int balance = getBalance(root);
+
+
+    if (balance > 1 &&
+        getBalance(root->left) >= 0)
+        return rightRotate(root);
+
+
+    if (balance > 1 &&
+        getBalance(root->left) < 0)
+    {
+        root->left = leftRotate(root->left);
+        return rightRotate(root);
+    }
+
+
+    if (balance < -1 &&
+        getBalance(root->right) <= 0)
+        return leftRotate(root);
+
+
+    if (balance < -1 &&
+        getBalance(root->right) > 0)
+    {
+        root->right = rightRotate(root->right);
+        return leftRotate(root);
+    }
+
+    return root;
+}
+
+
+
+    void levelorder_newline(struct Node *v){
+        queue <struct Node *> q;
+        struct Node *cur;
+        q.push(v);
+        q.push(NULL);
+
+        while(!q.empty()){
+            cur = q.front();
+            q.pop();
+            if(cur == NULL && q.size()!=0){
+                cout<<"\n";
+
+                q.push(NULL);
+                continue;
+            }
+            if(cur!=NULL){
+                cout<<" "<<cur->key;
+                if (cur->left!=NULL){
+                q.push(cur->left);
+                }
+                if (cur->right!=NULL){
+                    q.push(cur->right);
+                }
+            }
+
+
+        }
+    }
+
+
+int main()
+{
+Node *root = NULL;
+
+   int n,in,del;
+   cout<<"Enter no of nodes in the tree"<<endl;
+   cin>>n;
+   cout<<"Enter the node"<<endl;
+   for(int i=0;i<n;i++)
+   {
+
+    cin>>in;
+    root = insert(root, in);
   }
 
-};
 
-int main() {
-  AVLTree obj;
-  int option, val;
+    cout << "\n----Tree----\n";
+    levelorder_newline(root);
+   cout<<endl;
+   cout<<"Enter the element to be deleted"<<endl;
+   cin>>del;
+   root = deleteNode(root, del);
 
-  do {
-    cout << "1.Insert ";
-    cout << "2.Delete ";
-    cout << "3.Print ";
-    cout << "4.Height ";
-    cout << "0.Exit" << endl;
 
-    cin >> option;
-    //Node n1;
-    TreeNode * new_node = new TreeNode();
+    cout <<"After deletion \n";
+    levelorder_newline(root);
 
-    switch (option) {
-    case 0:
-      break;
-    case 1:
-      cout << "Enter VALUE of to INSERT: ";
-      cin >> val;
-      new_node -> value = val;
-      obj.root = obj.insert(obj.root, new_node);
-      cout << endl;
-      break;
-    case 2:
-      cout << "DELETE" << endl;
-      cout << "Enter VALUE to DELETE: ";
-      cin >> val;
-      new_node = obj.recursiveSearch(obj.root, val);
-      if (new_node != NULL) {
-        obj.root = obj.deleteNode(obj.root, val);
-        cout << "Value Deleted" << endl;
-      } else {
-        cout << "Value NOT found" << endl;
-      }
-      break;
-    case 3:
-      cout << "PRINT 2D: " << endl;
-      obj.print2D(obj.root, 5);
-      cout << endl;
-
-      break;
-    case 4:
-      cout << "TREE HEIGHT" << endl;
-      cout << "Height : " << obj.height(obj.root) << endl;
-      break;
-    default:
-      cout << "Enter Proper Option number " << endl;
-    }
-  } while (option != 0);
-
-  return 0;
+    return 0;
 }
